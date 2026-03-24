@@ -821,7 +821,7 @@ const GNEWS_API_KEY = "5efdb72e4e6e47a7775ee69aa6b3b9b8";
       await setDoc(ref, state, { merge: true });
     }
     async function fetchByCategory(category, query, page, limit) {
-// World → GNews
+      // World → GNews
 if (category === "world") {
 const url = query
 ? https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}
@@ -904,7 +904,7 @@ return (data.articles || []).map((a, i) => ({
         }));
       }
 
-// Sports → GNews
+      // Sports → GNews
 if (category === "sports") {
 const url = query
 ? https://gnews.io/api/v4/search?q=${encodeURIComponent(query + " sports")}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}
