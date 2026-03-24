@@ -631,15 +631,6 @@
       reader.readAsDataURL(file);
     });
 
-    // Search button click
-    searchBtn.addEventListener("click", async () => {
-      currentQuery = searchInput.value.trim();
-      feed.innerHTML = "";
-      page = 1;
-      hasMore = true;
-      await loadNews(true);
-    });
-
     let page = 1;
     const limit = 5;
     let isLoading = false;
@@ -1169,8 +1160,7 @@ function fetchByCategory(category, query, page, limit) {
           authReady = true;
         } catch (err) {
           console.error("Anonymous auth failed:", err);
-          alert("Firebase anonymous sign-in failed. Make sure it is enabled in Firebase.");
-          return;
+          // Don't block — continue to app anyway
         }
       }
 
