@@ -816,7 +816,7 @@
       const ref = doc(db, "articles", String(articleId));
       await setDoc(ref, state, { merge: true });
     }
-function fetchByCategory(category, query, page, limit) {
+async function fetchByCategory(category, query, page, limit) {
       // World → GNews
       if (category === "world") {
         const q = query || "world news";
