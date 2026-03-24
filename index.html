@@ -552,13 +552,15 @@
           <span id="usernameDisplay">u/guest</span>
         </div>
       </div>
-      <div class="category-tabs">
+            <div class="category-tabs">
         <button class="tab-btn active" data-category="world">🌍 World</button>
         <button class="tab-btn" data-category="gaming">🎮 Gaming</button>
         <button class="tab-btn" data-category="anime">🎌 Anime</button>
         <button class="tab-btn" data-category="tech">💻 Tech</button>
         <button class="tab-btn" data-category="sports">⚽ Sports</button>
+        <button class="tab-btn" data-category="movies">🍿 Movies</button>
       </div>
+
     </div>
 
     <!-- Hidden file input for avatar upload -->
@@ -638,6 +640,8 @@
     let currentQuery = "";
     let currentCategory = "world";
     let started = false;
+// ADD THIS LINE:
+const GNEWS_API_KEY = "5efdb72e4e6e47a7775ee69aa6b3b9b8";
 
     let app = null;
     let auth = null;
@@ -816,46 +820,43 @@
       const ref = doc(db, "articles", String(articleId));
       await setDoc(ref, state, { merge: true });
     }
-async function fetchByCategory(category, query, page, limit) {
+    async function fetchByCategory(category, query, page, limit) {
       // World → GNews
       if (category === "world") {
-        const feed = query
-          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en&gl=US&ceid=US:en`
-          : `https://rss.nytimes.com/services/xml/rss/nyt/World.xml`;
-        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}`;
+        const url = query
+          ? `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`
+          : `https://gnews.io/api/v4/top-headlines?category=world&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
         const res = await fetch(url);
         const data = await res.json();
-        return (data.items || []).map((a, i) => ({
+        return (data.articles || []).map((a, i) => ({
           id: "world_" + page + "_" + i,
           title: a.title || "",
-          summary: a.description ? a.description.replace(/<[^>]+>/g, "").slice(0, 300) : "",
-          url: a.link || "",
-          image_url: a.enclosure?.link || a.thumbnail || "",
-          published_at: a.pubDate || new Date().toISOString(),
-          news_site: data.feed?.title || "NYT World"
+          summary: a.description || "No summary available.",
+          url: a.url || "",
+          image_url: a.image || "",
+          published_at: a.publishedAt || new Date().toISOString(),
+          news_site: a.source?.name || "GNews World"
         }));
       }
 
-      // Gaming → GameHypes (fallback to GNews with gaming query)
+      // Gaming → GNews Search
       if (category === "gaming") {
-        const feed = query
-          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query + " game")}&hl=en&gl=US&ceid=US:en`
-          : `https://www.polygon.com/rss/index.xml`;
-        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}`;
+        const q = query ? `${query} gaming` : "video games";
+        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
         const res = await fetch(url);
         const data = await res.json();
-        return (data.items || []).map((a, i) => ({
+        return (data.articles || []).map((a, i) => ({
           id: "gaming_" + page + "_" + i,
           title: a.title || "",
-          summary: a.description ? a.description.replace(/<[^>]+>/g, "").slice(0, 300) : "",
-          url: a.link || "",
-          image_url: a.enclosure?.link || a.thumbnail || "",
-          published_at: a.pubDate || new Date().toISOString(),
-          news_site: data.feed?.title || "Polygon"
+          summary: a.description || "No summary available.",
+          url: a.url || "",
+          image_url: a.image || "",
+          published_at: a.publishedAt || new Date().toISOString(),
+          news_site: a.source?.name || "Gaming News"
         }));
       }
 
-      // Anime → Jikan API
+      // Anime → Jikan API (Untouched)
       if (category === "anime") {
         const q = query || "";
         const url = q
@@ -874,7 +875,7 @@ async function fetchByCategory(category, query, page, limit) {
         }));
       }
 
-      // Tech → Hacker News
+      // Tech → Hacker News (Untouched)
       if (category === "tech") {
         const topRes = await fetch("https://hacker-news.firebaseio.com/v0/topstories.json");
         const ids = await topRes.json();
@@ -893,27 +894,70 @@ async function fetchByCategory(category, query, page, limit) {
         }));
       }
 
-      // Sports → GNews sports
+      // Sports → GNews
       if (category === "sports") {
-        const feed = query
-          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query + " sports")}&hl=en&gl=US&ceid=US:en`
-          : `https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml`;
-        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}`;
+        const url = query
+          ? `https://gnews.io/api/v4/search?q=${encodeURIComponent(query + " sports")}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`
+          : `https://gnews.io/api/v4/top-headlines?category=sports&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
         const res = await fetch(url);
         const data = await res.json();
-        return (data.items || []).map((a, i) => ({
+        return (data.articles || []).map((a, i) => ({
           id: "sports_" + page + "_" + i,
           title: a.title || "",
-          summary: a.description ? a.description.replace(/<[^>]+>/g, "").slice(0, 300) : "",
-          url: a.link || "",
-          image_url: a.enclosure?.link || a.thumbnail || "",
-          published_at: a.pubDate || new Date().toISOString(),
-          news_site: data.feed?.title || "NYT Sports"
+          summary: a.description || "No summary available.",
+          url: a.url || "",
+          image_url: a.image || "",
+          published_at: a.publishedAt || new Date().toISOString(),
+          news_site: a.source?.name || "GNews Sports"
         }));
+      }
+
+      // Movies (TV Shows) → TVmaze API
+      if (category === "movies") {
+        if (query) {
+           // Search endpoint (returns an array of { score, show })
+           const url = `https://api.tvmaze.com/search/shows?q=${encodeURIComponent(query)}`;
+           const res = await fetch(url);
+           const data = await res.json();
+           const slice = data.slice((page - 1) * limit, page * limit);
+           return slice.map((item) => {
+             const show = item.show;
+             return {
+               id: "tvmaze_" + show.id,
+               title: show.name || "",
+               summary: show.summary ? show.summary.replace(/<[^>]+>/g, "").slice(0, 300) : "No summary available.",
+               url: show.url || "",
+               image_url: show.image?.medium || show.image?.original || "",
+               published_at: show.premiered || new Date().toISOString(),
+               news_site: show.network?.name || "TVmaze"
+             };
+           });
+        } else {
+           // Standard browsing endpoint. 
+           // TVmaze paginates by 250 items. We calculate the correct TVmaze page and our slice index.
+           const tvmazePage = Math.floor(((page - 1) * limit) / 250);
+           const startIndex = ((page - 1) * limit) % 250;
+           
+           const url = `https://api.tvmaze.com/shows?page=${tvmazePage}`;
+           const res = await fetch(url);
+           const data = await res.json();
+           const slice = data.slice(startIndex, startIndex + limit);
+           
+           return slice.map((show) => ({
+               id: "tvmaze_" + show.id,
+               title: show.name || "",
+               summary: show.summary ? show.summary.replace(/<[^>]+>/g, "").slice(0, 300) : "No summary available.",
+               url: show.url || "",
+               image_url: show.image?.medium || show.image?.original || "",
+               published_at: show.premiered || new Date().toISOString(),
+               news_site: show.network?.name || "TVmaze"
+           }));
+        }
       }
 
       return [];
     }
+
     async function loadNews(reset = false) {
       if (isLoading || !hasMore) return;
 
@@ -1168,7 +1212,7 @@ async function fetchByCategory(category, query, page, limit) {
           authReady = true;
         } catch (err) {
           console.error("Anonymous auth failed:", err);
-          // Don't block — continue to app anyway
+          // Don't block -- continue to app anyway
         }
       }
 
