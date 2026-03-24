@@ -819,35 +819,39 @@
 async function fetchByCategory(category, query, page, limit) {
       // World → GNews
       if (category === "world") {
-        const q = query || "world news";
-        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=5efdb72e4e6e47a7775ee69aa6b3b9b8`;
+        const feed = query
+          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en`
+          : `https://feeds.bbci.co.uk/news/world/rss.xml`;
+        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}&offset=${(page-1)*limit}`;
         const res = await fetch(url);
         const data = await res.json();
-        return (data.articles || []).map((a, i) => ({
-          id: "gnews_" + page + "_" + i,
+        return (data.items || []).map((a, i) => ({
+          id: "world_" + page + "_" + i,
           title: a.title || "",
-          summary: a.description || "",
-          url: a.url || "",
-          image_url: a.image || "",
-          published_at: a.publishedAt || new Date().toISOString(),
-          news_site: a.source?.name || "GNews"
+          summary: a.description ? a.description.replace(/<[^>]+>/g, "").slice(0, 300) : "",
+          url: a.link || "",
+          image_url: a.enclosure?.link || a.thumbnail || "",
+          published_at: a.pubDate || new Date().toISOString(),
+          news_site: a.author || "BBC News"
         }));
       }
 
       // Gaming → GameHypes (fallback to GNews with gaming query)
       if (category === "gaming") {
-        const q = query || "gaming";
-        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=5efdb72e4e6e47a7775ee69aa6b3b9b8`;
+        const feed = query
+          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query + " gaming")}&hl=en`
+          : `https://www.ign.com/rss/articles`;
+        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}&offset=${(page-1)*limit}`;
         const res = await fetch(url);
         const data = await res.json();
-        return (data.articles || []).map((a, i) => ({
+        return (data.items || []).map((a, i) => ({
           id: "gaming_" + page + "_" + i,
           title: a.title || "",
-          summary: a.description || "",
-          url: a.url || "",
-          image_url: a.image || "",
-          published_at: a.publishedAt || new Date().toISOString(),
-          news_site: a.source?.name || "Gaming News"
+          summary: a.description ? a.description.replace(/<[^>]+>/g, "").slice(0, 300) : "",
+          url: a.link || "",
+          image_url: a.enclosure?.link || a.thumbnail || "",
+          published_at: a.pubDate || new Date().toISOString(),
+          news_site: a.author || "IGN"
         }));
       }
 
@@ -891,18 +895,20 @@ async function fetchByCategory(category, query, page, limit) {
 
       // Sports → GNews sports
       if (category === "sports") {
-        const q = query || "sports";
-        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=5efdb72e4e6e47a7775ee69aa6b3b9b8`;
+        const feed = query
+          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query + " sports")}&hl=en`
+          : `https://feeds.bbci.co.uk/sport/rss.xml`;
+        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}&offset=${(page-1)*limit}`;
         const res = await fetch(url);
         const data = await res.json();
-        return (data.articles || []).map((a, i) => ({
+        return (data.items || []).map((a, i) => ({
           id: "sports_" + page + "_" + i,
           title: a.title || "",
-          summary: a.description || "",
-          url: a.url || "",
-          image_url: a.image || "",
-          published_at: a.publishedAt || new Date().toISOString(),
-          news_site: a.source?.name || "Sports News"
+          summary: a.description ? a.description.replace(/<[^>]+>/g, "").slice(0, 300) : "",
+          url: a.link || "",
+          image_url: a.enclosure?.link || a.thumbnail || "",
+          published_at: a.pubDate || new Date().toISOString(),
+          news_site: a.author || "BBC Sport"
         }));
       }
 
