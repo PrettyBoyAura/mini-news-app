@@ -497,7 +497,31 @@
       width: 18px;
       height: 18px;
     }
-
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 12px;
+  border-top: 1px solid #232734;
+  scrollbar-width: none;
+}
+.category-tabs::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 999px;
+  background: #232936;
+  color: #9aa3b2;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tab-btn.active {
+  background: #3a86ff;
+  color: white;
+}
     .hidden {
       display: none !important;
     }
@@ -527,6 +551,13 @@
           <span id="avatarDisplay"></span>
           <span id="usernameDisplay">u/guest</span>
         </div>
+      </div>
+      <div class="category-tabs">
+        <button class="tab-btn active" data-category="world">🌍 World</button>
+        <button class="tab-btn" data-category="gaming">🎮 Gaming</button>
+        <button class="tab-btn" data-category="anime">🎌 Anime</button>
+        <button class="tab-btn" data-category="tech">💻 Tech</button>
+        <button class="tab-btn" data-category="sports">⚽ Sports</button>
       </div>
     </div>
 
@@ -614,6 +645,7 @@
     let isLoading = false;
     let hasMore = true;
     let currentQuery = "";
+    let currentCategory = "world";
     let started = false;
 
     let app = null;
@@ -793,7 +825,98 @@
       const ref = doc(db, "articles", String(articleId));
       await setDoc(ref, state, { merge: true });
     }
+function fetchByCategory(category, query, page, limit) {
+      // World → GNews
+      if (category === "world") {
+        const q = query || "world news";
+        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=5efdb72e4e6e47a7775ee69aa6b3b9b8`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return (data.articles || []).map((a, i) => ({
+          id: "gnews_" + page + "_" + i,
+          title: a.title || "",
+          summary: a.description || "",
+          url: a.url || "",
+          image_url: a.image || "",
+          published_at: a.publishedAt || new Date().toISOString(),
+          news_site: a.source?.name || "GNews"
+        }));
+      }
 
+      // Gaming → GameHypes (fallback to GNews with gaming query)
+      if (category === "gaming") {
+        const q = query || "gaming";
+        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=5efdb72e4e6e47a7775ee69aa6b3b9b8`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return (data.articles || []).map((a, i) => ({
+          id: "gaming_" + page + "_" + i,
+          title: a.title || "",
+          summary: a.description || "",
+          url: a.url || "",
+          image_url: a.image || "",
+          published_at: a.publishedAt || new Date().toISOString(),
+          news_site: a.source?.name || "Gaming News"
+        }));
+      }
+
+      // Anime → Jikan API
+      if (category === "anime") {
+        const q = query || "";
+        const url = q
+          ? `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`
+          : `https://api.jikan.moe/v4/top/anime?page=${page}&limit=${limit}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return (data.data || []).map((a) => ({
+          id: "jikan_" + a.mal_id,
+          title: a.title || "",
+          summary: a.synopsis || "No synopsis available.",
+          url: a.url || "",
+          image_url: a.images?.jpg?.large_image_url || "",
+          published_at: a.aired?.from || new Date().toISOString(),
+          news_site: "MyAnimeList"
+        }));
+      }
+
+      // Tech → Hacker News
+      if (category === "tech") {
+        const topRes = await fetch("https://hacker-news.firebaseio.com/v0/topstories.json");
+        const ids = await topRes.json();
+        const slice = ids.slice((page - 1) * limit, page * limit);
+        const stories = await Promise.all(
+          slice.map(id => fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(r => r.json()))
+        );
+        return stories.filter(s => s && s.title).map((s) => ({
+          id: "hn_" + s.id,
+          title: s.title || "",
+          summary: s.text ? s.text.replace(/<[^>]+>/g, "").slice(0, 200) : "Click to read on Hacker News.",
+          url: s.url || `https://news.ycombinator.com/item?id=${s.id}`,
+          image_url: "",
+          published_at: new Date(s.time * 1000).toISOString(),
+          news_site: "Hacker News"
+        }));
+      }
+
+      // Sports → GNews sports
+      if (category === "sports") {
+        const q = query || "sports";
+        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=5efdb72e4e6e47a7775ee69aa6b3b9b8`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return (data.articles || []).map((a, i) => ({
+          id: "sports_" + page + "_" + i,
+          title: a.title || "",
+          summary: a.description || "",
+          url: a.url || "",
+          image_url: a.image || "",
+          published_at: a.publishedAt || new Date().toISOString(),
+          news_site: a.source?.name || "Sports News"
+        }));
+      }
+
+      return [];
+    }
     async function loadNews(reset = false) {
       if (isLoading || !hasMore) return;
 
@@ -808,21 +931,15 @@
         loadMoreBtn.disabled = true;
         loadMoreBtn.textContent = "Loading...";
 
-        let url = `https://api.spaceflightnewsapi.net/v4/articles/?limit=${limit}&offset=${(page - 1) * limit}`;
-        if (currentQuery.trim()) {
-          url += `&search=${encodeURIComponent(currentQuery.trim())}`;
-        }
+        const articles = await fetchByCategory(currentCategory, currentQuery, page, limit);
 
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (!data.results || data.results.length === 0) {
+        if (!articles || articles.length === 0) {
           hasMore = false;
           loadMoreBtn.textContent = "No more posts";
           return;
         }
 
-        for (const article of data.results) {
+        for (const article of articles) {
           const articleId = String(article.id);
           const ensured = await ensureArticleData(article);
           const state = await getArticleState(article);
@@ -1107,6 +1224,28 @@
         if (e.key === "Enter") searchBtn.click();
       });
     }
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentCategory = btn.dataset.category;
+        currentQuery = "";
+        searchInput.value = "";
+        page = 1;
+        hasMore = true;
+        feed.innerHTML = "";
+        await loadNews(true);
+      });
+    });
+
+    searchBtn.addEventListener("click", async () => {
+      currentQuery = searchInput.value.trim();
+      page = 1;
+      hasMore = true;
+      feed.innerHTML = "";
+      await loadNews(true);
+    });
 
     refreshUsernameDisplay();
     loginOverlay.classList.remove("hidden");
