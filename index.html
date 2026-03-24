@@ -825,21 +825,9 @@ const GNEWS_API_KEY = "5efdb72e4e6e47a7775ee69aa6b3b9b8";
       if (category === "world") {
         const url = query
           ? `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`
-: `https://gnews.io/api/v4/top-headlines?category=world&lang=en&country=in&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
-        let data = { articles: [] };
-
-try {
-  const res = await fetch(url);
-  
-  if (!res.ok) {
-    throw new Error("API error: " + res.status);
-  }
-
-  data = await res.json();
-} catch (error) {
-  console.error("GNews Fetch Error:", error);
-  return [];
-}
+          : `https://gnews.io/api/v4/top-headlines?category=world&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
         return (data.articles || []).map((a, i) => ({
           id: "world_" + page + "_" + i,
           title: a.title || "",
@@ -853,12 +841,9 @@ try {
 
       // Gaming → GNews Search
       if (category === "gaming") {
-        const q = query ? `${query} gaming` : "gaming";
+        const q = query ? `${query} gaming` : "video games";
         const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
-        const controller = new AbortController();
-setTimeout(() => controller.abort(), 8000);
-
-const res = await fetch(url, { signal: controller.signal });
+        const res = await fetch(url);
         const data = await res.json();
         return (data.articles || []).map((a, i) => ({
           id: "gaming_" + page + "_" + i,
