@@ -581,17 +581,16 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js';
-    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js';
-    import {
-      getFirestore,
-      doc,
-      getDoc,
-      setDoc,
-      updateDoc,
-      increment,
-      arrayUnion
-    } from 'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js';
+    let initializeApp, getAuth, signInAnonymously;
+    let getFirestore, doc, getDoc, setDoc, updateDoc, increment, arrayUnion;
+
+    try {
+      ({ initializeApp } = await import('https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js'));
+      ({ getAuth, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js'));
+      ({ getFirestore, doc, getDoc, setDoc, updateDoc, increment, arrayUnion } = await import('https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js'));
+    } catch(e) {
+      console.warn("Firebase failed to load, running without it.", e);
+    }
 
     const firebaseConfig = {
   apiKey: "AIzaSyB4nS8d1wOpfhi-hwXqor5IL3G6zjXvt3c",
@@ -621,17 +620,7 @@
     const avatarUploadInput = document.getElementById("avatarUploadInput");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    // Avatar upload
-    avatarUploadInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        localStorage.setItem("userAvatar", ev.target.result);
-        refreshUsernameDisplay();
-      };
-      reader.readAsDataURL(file);
-    });
+    const GNEWS_API_KEY = "5efdb72e4e6e47a7775ee69aa6b3b9b8";
 
     let page = 1;
     const limit = 5;
@@ -640,8 +629,6 @@
     let currentQuery = "";
     let currentCategory = "world";
     let started = false;
-// ADD THIS LINE:
-const GNEWS_API_KEY = "5efdb72e4e6e47a7775ee69aa6b3b9b8";
 
     let app = null;
     let auth = null;
@@ -822,18 +809,13 @@ const GNEWS_API_KEY = "5efdb72e4e6e47a7775ee69aa6b3b9b8";
     }
     async function fetchByCategory(category, query, page, limit) {
       // World → GNews
-if (category === "world") {
-const url = query
-? https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}
-: https://gnews.io/api/v4/top-headlines?category=world&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY};
-let data = {};
-try {
-const res = await fetch(https://api.allorigins.win/raw?url=${encodeURIComponent(url)});
-if (res.ok) data = await res.json();
-} catch (e) {
-console.warn('World API blocked');
-}
-return (data.articles || []).map((a, i) => ({
+      if (category === "world") {
+        const url = query
+          ? `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`
+          : `https://gnews.io/api/v4/top-headlines?category=world&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return (data.articles || []).map((a, i) => ({
           id: "world_" + page + "_" + i,
           title: a.title || "",
           summary: a.description || "No summary available.",
@@ -844,18 +826,13 @@ return (data.articles || []).map((a, i) => ({
         }));
       }
 
-// Gaming → GNews Search
-if (category === "gaming") {
-const q = query ? ${query} gaming : "video games";
-const url = https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY};
-let data = {};
-try {
-const res = await fetch(https://api.allorigins.win/raw?url=${encodeURIComponent(url)});
-if (res.ok) data = await res.json();
-} catch (e) {
-console.warn('Gaming API blocked');
-}
-return (data.articles || []).map((a, i) => ({
+      // Gaming → GNews Search
+      if (category === "gaming") {
+        const q = query ? `${query} gaming` : "video games";
+        const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(q)}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return (data.articles || []).map((a, i) => ({
           id: "gaming_" + page + "_" + i,
           title: a.title || "",
           summary: a.description || "No summary available.",
@@ -905,18 +882,13 @@ return (data.articles || []).map((a, i) => ({
       }
 
       // Sports → GNews
-if (category === "sports") {
-const url = query
-? https://gnews.io/api/v4/search?q=${encodeURIComponent(query + " sports")}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}
-: https://gnews.io/api/v4/top-headlines?category=sports&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY};
-let data = {};
-try {
-const res = await fetch(https://api.allorigins.win/raw?url=${encodeURIComponent(url)});
-if (res.ok) data = await res.json();
-} catch (e) {
-console.warn('Sports API blocked');
-}
-return (data.articles || []).map((a, i) => ({
+      if (category === "sports") {
+        const url = query
+          ? `https://gnews.io/api/v4/search?q=${encodeURIComponent(query + " sports")}&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`
+          : `https://gnews.io/api/v4/top-headlines?category=sports&lang=en&max=${limit}&page=${page}&apikey=${GNEWS_API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return (data.articles || []).map((a, i) => ({
           id: "sports_" + page + "_" + i,
           title: a.title || "",
           summary: a.description || "No summary available.",
@@ -1302,6 +1274,18 @@ return (data.articles || []).map((a, i) => ({
       hasMore = true;
       feed.innerHTML = "";
       await loadNews(true);
+    });
+
+    // Avatar upload
+    avatarUploadInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        localStorage.setItem("userAvatar", ev.target.result);
+        refreshUsernameDisplay();
+      };
+      reader.readAsDataURL(file);
     });
 
     refreshUsernameDisplay();
