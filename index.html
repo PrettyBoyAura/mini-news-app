@@ -820,9 +820,9 @@ async function fetchByCategory(category, query, page, limit) {
       // World → GNews
       if (category === "world") {
         const feed = query
-          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en`
-          : `https://feeds.bbci.co.uk/news/world/rss.xml`;
-        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}&offset=${(page-1)*limit}`;
+          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en&gl=US&ceid=US:en`
+          : `https://rss.nytimes.com/services/xml/rss/nyt/World.xml`;
+        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}`;
         const res = await fetch(url);
         const data = await res.json();
         return (data.items || []).map((a, i) => ({
@@ -832,16 +832,16 @@ async function fetchByCategory(category, query, page, limit) {
           url: a.link || "",
           image_url: a.enclosure?.link || a.thumbnail || "",
           published_at: a.pubDate || new Date().toISOString(),
-          news_site: a.author || "BBC News"
+          news_site: data.feed?.title || "NYT World"
         }));
       }
 
       // Gaming → GameHypes (fallback to GNews with gaming query)
       if (category === "gaming") {
         const feed = query
-          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query + " gaming")}&hl=en`
-          : `https://www.ign.com/rss/articles`;
-        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}&offset=${(page-1)*limit}`;
+          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query + " game")}&hl=en&gl=US&ceid=US:en`
+          : `https://www.polygon.com/rss/index.xml`;
+        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}`;
         const res = await fetch(url);
         const data = await res.json();
         return (data.items || []).map((a, i) => ({
@@ -851,7 +851,7 @@ async function fetchByCategory(category, query, page, limit) {
           url: a.link || "",
           image_url: a.enclosure?.link || a.thumbnail || "",
           published_at: a.pubDate || new Date().toISOString(),
-          news_site: a.author || "IGN"
+          news_site: data.feed?.title || "Polygon"
         }));
       }
 
@@ -896,9 +896,9 @@ async function fetchByCategory(category, query, page, limit) {
       // Sports → GNews sports
       if (category === "sports") {
         const feed = query
-          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query + " sports")}&hl=en`
-          : `https://feeds.bbci.co.uk/sport/rss.xml`;
-        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}&offset=${(page-1)*limit}`;
+          ? `https://news.google.com/rss/search?q=${encodeURIComponent(query + " sports")}&hl=en&gl=US&ceid=US:en`
+          : `https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml`;
+        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}&count=${limit}`;
         const res = await fetch(url);
         const data = await res.json();
         return (data.items || []).map((a, i) => ({
@@ -908,7 +908,7 @@ async function fetchByCategory(category, query, page, limit) {
           url: a.link || "",
           image_url: a.enclosure?.link || a.thumbnail || "",
           published_at: a.pubDate || new Date().toISOString(),
-          news_site: a.author || "BBC Sport"
+          news_site: data.feed?.title || "NYT Sports"
         }));
       }
 
@@ -953,7 +953,9 @@ async function fetchByCategory(category, query, page, limit) {
           const commentCount = comments.length;
 
           post.innerHTML = `
-            <img class="post-image" src="${article.image_url || 'https://picsum.photos/800/400'}" alt="Post image">
+            ${article.image_url
+              ? `<img class="post-image" src="${article.image_url}" alt="Post image">`
+              : `<img class="post-image" src="https://picsum.photos/seed/${articleId}/800/400" alt="Post image">`}
             <div class="post-content">
               <div class="post-meta">
                 <span>📰 ${article.news_site || 'Unknown Source'}</span>
